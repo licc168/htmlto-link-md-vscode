@@ -1,0 +1,87 @@
+{
+  "name": "htmlto-link-md",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
+  "version": "0.1.0",
+  "publisher": "licc",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "htmlToLinkMd.share",
+        "title": "%command.share%",
+        "category": "HTMLtoLink",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "htmlToLinkMd.deleteShare",
+        "title": "%command.deleteShare%",
+        "category": "HTMLtoLink"
+      },
+      {
+        "command": "htmlToLinkMd.setToken",
+        "title": "%command.setToken%",
+        "category": "HTMLtoLink"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceLangId == markdown",
+          "command": "htmlToLinkMd.share",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceLangId == markdown",
+          "command": "htmlToLinkMd.share",
+          "group": "htmlToLink@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "HTMLtoLink MD",
+      "properties": {
+        "htmlToLinkMd.apiBaseUrl": {
+          "type": "string",
+          "default": "https://htmlto.link",
+          "description": "%config.apiBaseUrl%"
+        },
+        "htmlToLinkMd.defaultTemplate": {
+          "type": "string",
+          "default": "plain",
+          "description": "%config.defaultTemplate%"
+        },
+        "htmlToLinkMd.autoCopyUrl": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.autoCopyUrl%"
+        },
+        "htmlToLinkMd.openInBrowser": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.openInBrowser%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.5.0"
+  }
+}

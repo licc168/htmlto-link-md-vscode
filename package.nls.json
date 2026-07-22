@@ -1,0 +1,11 @@
+{
+  "extension.displayName": "Share Markdown - HTMLtoLink",
+  "extension.description": "Share Markdown files as beautiful web pages via htmlto.link",
+  "command.share": "Share Markdown File",
+  "command.deleteShare": "Delete Share for Current File",
+  "command.setToken": "Set API Token",
+  "config.apiBaseUrl": "API base URL for htmlto.link service",
+  "config.defaultTemplate": "Default template for sharing",
+  "config.autoCopyUrl": "Automatically copy share link to clipboard on success",
+  "config.openInBrowser": "Open share link in browser on success"
+}
