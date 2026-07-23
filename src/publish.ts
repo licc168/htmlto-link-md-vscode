@@ -4,6 +4,7 @@ import { createSharePage, deleteSharePage } from './api';
 import { ShareRecord, CreateShareResponse, TEMPLATES } from './constants';
 import { t } from './i18n';
 import { SharePanel } from './panel/SharePanel';
+import { getToken } from './token';
 
 const SHARES_KEY = 'htmlToLinkMd.fileShares';
 
@@ -76,14 +77,22 @@ export async function publishMarkdown(
   templateId: string,
   theme?: string
 ): Promise<PublishResult> {
+  if (!templateId) {
+    throw new Error(t('share.missingTemplate'));
+  }
+
   const config = vscode.workspace.getConfiguration('htmlToLinkMd');
   const apiBaseUrl = config.get<string>('apiBaseUrl', 'https://htmlto.link');
-  const token = await context.secrets.get('htmlToLinkMd.token');
+  const token = await getToken(context);
 
   const records = getShareRecords(context);
   const existing = records[filePath];
 
   const prepared = prepareMarkdown(content);
+  if (!prepared) {
+    throw new Error(t('share.emptyContent'));
+  }
+
   const title = getTitle(filePath);
   const themeClass = resolveThemeClass(templateId, theme);
 
@@ -114,7 +123,7 @@ export async function deleteShare(
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration('htmlToLinkMd');
   const apiBaseUrl = config.get<string>('apiBaseUrl', 'https://htmlto.link');
-  const token = await context.secrets.get('htmlToLinkMd.token');
+  const token = await getToken(context);
 
   const records = getShareRecords(context);
   const record = records[filePath];
@@ -128,36 +137,108 @@ export async function deleteShare(
   await saveShareRecords(context, records);
 }
 
+function isMarkdownDoc(doc: vscode.TextDocument): boolean {
+  return doc.languageId === 'markdown' || /\.md$/i.test(doc.fileName);
+}
+
+function sameFsPath(a: string, b: string): boolean {
+  const na = path.normalize(a);
+  const nb = path.normalize(b);
+  return process.platform === 'win32' ? na.toLowerCase() === nb.toLowerCase() : na === nb;
+}
+
+/**
+ * Load markdown text for share.
+ * Always prefer the editor buffer (including unsaved dirty docs).
+ * Title-bar / explorer commands pass a URI; openTextDocument returns the open buffer.
+ */
+export async function resolveMarkdownContent(
+  uri?: vscode.Uri
+): Promise<{ filePath: string; content: string } | undefined> {
+  const active = vscode.window.activeTextEditor?.document;
+
+  // 1) Active editor matching the target URI (or no URI)
+  if (
+    active &&
+    isMarkdownDoc(active) &&
+    (!uri || sameFsPath(active.uri.fsPath, uri.fsPath) || active.uri.toString() === uri.toString())
+  ) {
+    return { filePath: active.fileName, content: active.getText() };
+  }
+
+  if (uri) {
+    // 2) Any already-open document
+    const openDoc = vscode.workspace.textDocuments.find(
+      (d) => d.uri.toString() === uri.toString() || sameFsPath(d.uri.fsPath, uri.fsPath)
+    );
+    if (openDoc) {
+      if (!isMarkdownDoc(openDoc)) {
+        vscode.window.showWarningMessage(t('share.notMarkdown'));
+        return undefined;
+      }
+      return { filePath: openDoc.fileName, content: openDoc.getText() };
+    }
+
+    // 3) openTextDocument: uses buffer if open, else loads from disk
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      if (!isMarkdownDoc(doc)) {
+        vscode.window.showWarningMessage(t('share.notMarkdown'));
+        return undefined;
+      }
+      return { filePath: doc.fileName, content: doc.getText() };
+    } catch {
+      try {
+        const data = await vscode.workspace.fs.readFile(uri);
+        return { filePath: uri.fsPath, content: Buffer.from(data).toString('utf-8') };
+      } catch {
+        vscode.window.showWarningMessage(t('share.noActiveFile'));
+        return undefined;
+      }
+    }
+  }
+
+  if (!active) {
+    vscode.window.showWarningMessage(t('share.noActiveFile'));
+    return undefined;
+  }
+  if (!isMarkdownDoc(active)) {
+    vscode.window.showWarningMessage(t('share.notMarkdown'));
+    return undefined;
+  }
+  return { filePath: active.fileName, content: active.getText() };
+}
+
+/**
+ * Re-read content for a file path right before publish (unsaved edits).
+ */
+export async function readMarkdownContentForPath(filePath: string): Promise<string | undefined> {
+  const openDoc = vscode.workspace.textDocuments.find((d) => sameFsPath(d.fileName, filePath) || sameFsPath(d.uri.fsPath, filePath));
+  if (openDoc) {
+    return openDoc.getText();
+  }
+  try {
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+    return doc.getText();
+  } catch {
+    try {
+      const data = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath));
+      return Buffer.from(data).toString('utf-8');
+    } catch {
+      return undefined;
+    }
+  }
+}
+
 /**
  * Main share command handler — opens the share panel
  */
 export async function shareActiveFile(context: vscode.ExtensionContext, uri?: vscode.Uri): Promise<void> {
-  let filePath: string | undefined;
-  let content: string | undefined;
-
-  if (uri) {
-    filePath = uri.fsPath;
-    const data = await vscode.workspace.fs.readFile(uri);
-    content = Buffer.from(data).toString('utf-8');
-  } else {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showWarningMessage(t('share.noActiveFile'));
-      return;
-    }
-    if (editor.document.languageId !== 'markdown') {
-      vscode.window.showWarningMessage(t('share.notMarkdown'));
-      return;
-    }
-    filePath = editor.document.fileName;
-    content = editor.document.getText();
-  }
-
-  if (!filePath || content === undefined) {
+  const resolved = await resolveMarkdownContent(uri);
+  if (!resolved) {
     return;
   }
-
-  SharePanel.show(context, filePath, content);
+  SharePanel.show(context, resolved.filePath, resolved.content);
 }
 
 /**
@@ -177,13 +258,14 @@ export async function deleteShareForActiveFile(context: vscode.ExtensionContext)
     return;
   }
 
+  const yes = t('share.deleteYes');
   const confirm = await vscode.window.showWarningMessage(
     t('share.deleteConfirm'),
     { modal: true },
-    'Yes'
+    yes
   );
 
-  if (confirm !== 'Yes') {
+  if (confirm !== yes) {
     return;
   }
 

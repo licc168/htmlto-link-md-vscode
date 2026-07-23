@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 
-type Locale = 'zh' | 'en';
+export type Locale = 'zh' | 'en';
+
+/** globalState key：用户在面板里选择的界面语言 */
+export const LOCALE_PREF_KEY = 'htmlToLinkMd.uiLocale';
 
 const messages: Record<Locale, Record<string, string>> = {
   zh: {
@@ -8,9 +11,12 @@ const messages: Record<Locale, Record<string, string>> = {
     'share.failed': '分享失败',
     'share.deleted': '已删除分享',
     'share.deleteConfirm': '确定要删除当前文件的分享链接吗？',
+    'share.deleteYes': '删除',
     'share.noRecord': '当前文件没有分享记录',
     'share.noActiveFile': '请先打开一个 Markdown 文件',
     'share.notMarkdown': '当前文件不是 Markdown 文件',
+    'share.emptyContent': '文档内容为空，请先写入内容后再分享（未保存的内容也会被读取）',
+    'share.missingTemplate': '请先选择一个模板',
     'share.publishing': '正在分享...',
     'share.selectTemplate': '选择模板',
     'share.selectTheme': '选择主题',
@@ -21,10 +27,12 @@ const messages: Record<Locale, Record<string, string>> = {
     'share.update': '更新分享',
     'share.create': '新建分享',
     'token.placeholder': '输入 API Token（留空为游客模式）',
+    'token.prompt': '在 htmlto.link 设置页获取 Token。留空则清除并使用游客模式。',
     'token.saved': 'Token 已保存',
     'token.cleared': 'Token 已清除',
     'token.set': '设置 Token',
     'token.clear': '清除 Token',
+    'token.get': '获取 Token',
     'panel.title': '分享 Markdown',
     'panel.template': '模板',
     'panel.theme': '主题',
@@ -45,20 +53,88 @@ const messages: Record<Locale, Record<string, string>> = {
     'panel.result.updated': '分享已更新！',
     'panel.result.copied': '已复制！',
     'panel.result.permanent': '已绑定账号 · 长期有效',
+    'panel.result.tip': '再次分享同一文件可更新链接；命令面板可执行「删除当前文件的分享」。',
     'panel.back': '返回',
     'panel.retry': '重试',
     'panel.error.title': '分享失败',
     'panel.mode.guest': '游客',
     'panel.mode.token': 'Token',
+    'panel.tip': '选择模板后点击分享。游客链接约 24 小时有效；设置 Token 可长期保存并便于更新。',
+    'panel.tokenBar.guest': '当前为游客模式 · 链接约 24 小时后过期',
+    'panel.tokenBar.token': '已设置 Token · 分享将绑定账号',
+    'panel.welcome.title': '3 步分享 Markdown',
+    'panel.welcome.step1': '打开任意 .md 文件',
+    'panel.welcome.step2': '点编辑器右上角地球图标，或右键文件选择「分享」',
+    'panel.welcome.step3': '挑选模板（可选主题），点击分享，复制公开链接',
+    'panel.welcome.token': '可选：设置 Token 获得长期链接。在 htmlto.link 注册后，于设置页复制 Token。',
+    'panel.welcome.dismiss': '知道了，开始分享',
+    'panel.lang.zh': '中文',
+    'panel.lang.en': 'EN',
+    'panel.lang.aria': '切换界面语言',
+    'welcome.toast': 'Markdown 一键分享：打开 .md 后，点编辑器右上角地球图标即可分享为网页。',
+    'welcome.toast.action': '立即分享',
+    'welcome.toast.dismiss': '知道了',
+    // templates
+    'template.plain': '简洁',
+    'template.memo': '便签',
+    'template.popart': '波普艺术',
+    'template.traditionalchinese': '中国风',
+    'template.coilnotebook': '线圈本',
+    'template.cyberpunk': '赛博朋克',
+    'template.glassmorphism': '毛玻璃',
+    'template.terminal': '终端',
+    'template.bauhaus': '包豪斯',
+    'template.newspaper': '报纸',
+    'template.magazine': '杂志',
+    'template.academic': '学术',
+    'template.minimal': '极简',
+    'template.elegant': '优雅',
+    'template.modern': '现代',
+    'template.retro': '复古',
+    'template.nature': '自然',
+    'template.ocean': '海洋',
+    'template.sunset': '日落',
+    'template.forest': '森林',
+    'template.desert': '沙漠',
+    'template.aurora': '极光',
+    'template.neon': '霓虹',
+    'template.pastel': '粉彩',
+    'template.monochrome': '单色',
+    'template.gradient': '渐变',
+    'template.shadow': '阴影',
+    'template.border': '边框',
+    'template.card': '卡片',
+    'template.timeline': '时间线',
+    'template.notion': 'Notion',
+    'template.github': 'GitHub',
+    'template.medium': 'Medium',
+    // themes
+    'theme.bright-mode': '亮色',
+    'theme.dark-mode': '暗色',
+    'theme.candy': '糖果',
+    'theme.mint': '薄荷',
+    'theme.purple': '紫色',
+    'theme.yellow': '黄色',
+    'theme.hot-red': '热红',
+    'theme.forest-green': '森林绿',
+    'theme.ocean-blue': '海蓝',
+    'theme.pink-blue': '粉蓝',
+    'theme.neon-pink': '霓虹粉',
+    'theme.retro-orange': '复古橙',
+    'theme.blue': '蓝色',
+    'theme.pink': '粉色',
   },
   en: {
     'share.success': 'Shared successfully!',
     'share.failed': 'Share failed',
     'share.deleted': 'Share deleted',
     'share.deleteConfirm': 'Are you sure you want to delete the share link for this file?',
+    'share.deleteYes': 'Delete',
     'share.noRecord': 'No share record for current file',
     'share.noActiveFile': 'Please open a Markdown file first',
     'share.notMarkdown': 'Current file is not a Markdown file',
+    'share.emptyContent': 'Document is empty. Write some content first (unsaved buffer is used).',
+    'share.missingTemplate': 'Please select a template first',
     'share.publishing': 'Sharing...',
     'share.selectTemplate': 'Select template',
     'share.selectTheme': 'Select theme',
@@ -69,10 +145,12 @@ const messages: Record<Locale, Record<string, string>> = {
     'share.update': 'Update share',
     'share.create': 'New share',
     'token.placeholder': 'Enter API Token (leave empty for guest mode)',
+    'token.prompt': 'Get a token from htmlto.link settings. Leave empty to clear and use guest mode.',
     'token.saved': 'Token saved',
     'token.cleared': 'Token cleared',
     'token.set': 'Set Token',
     'token.clear': 'Clear Token',
+    'token.get': 'Get Token',
     'panel.title': 'Share Markdown',
     'panel.template': 'Template',
     'panel.theme': 'Theme',
@@ -93,19 +171,93 @@ const messages: Record<Locale, Record<string, string>> = {
     'panel.result.updated': 'Share updated!',
     'panel.result.copied': 'Copied!',
     'panel.result.permanent': 'Linked to your account',
+    'panel.result.tip': 'Share the same file again to update the link. Use the command palette to delete a share.',
     'panel.back': 'Back',
     'panel.retry': 'Retry',
     'panel.error.title': 'Share failed',
     'panel.mode.guest': 'Guest',
     'panel.mode.token': 'Token',
+    'panel.tip': 'Pick a template, then share. Guest links expire in about 24 hours; set a Token for longer-lived links.',
+    'panel.tokenBar.guest': 'Guest mode · links expire in about 24 hours',
+    'panel.tokenBar.token': 'Token set · shares are linked to your account',
+    'panel.welcome.title': 'Share Markdown in 3 steps',
+    'panel.welcome.step1': 'Open any .md file',
+    'panel.welcome.step2': 'Click the globe icon in the editor title bar, or right-click the file → Share',
+    'panel.welcome.step3': 'Pick a template (and theme if any), share, then copy the public link',
+    'panel.welcome.token': 'Optional: set a Token for longer-lived links. Sign up at htmlto.link, then copy the Token from Settings.',
+    'panel.welcome.dismiss': 'Got it, start sharing',
+    'panel.lang.zh': '中文',
+    'panel.lang.en': 'EN',
+    'panel.lang.aria': 'Switch UI language',
+    'welcome.toast': 'Quick Markdown Share: open a .md file, then click the globe icon in the editor title bar to share as a web page.',
+    'welcome.toast.action': 'Share now',
+    'welcome.toast.dismiss': 'Got it',
+    // templates (English keeps product names)
+    'template.plain': 'Plain',
+    'template.memo': 'Memo',
+    'template.popart': 'Pop Art',
+    'template.traditionalchinese': 'Traditional Chinese',
+    'template.coilnotebook': 'Coil Notebook',
+    'template.cyberpunk': 'Cyberpunk',
+    'template.glassmorphism': 'Glassmorphism',
+    'template.terminal': 'Terminal',
+    'template.bauhaus': 'Bauhaus',
+    'template.newspaper': 'Newspaper',
+    'template.magazine': 'Magazine',
+    'template.academic': 'Academic',
+    'template.minimal': 'Minimal',
+    'template.elegant': 'Elegant',
+    'template.modern': 'Modern',
+    'template.retro': 'Retro',
+    'template.nature': 'Nature',
+    'template.ocean': 'Ocean',
+    'template.sunset': 'Sunset',
+    'template.forest': 'Forest',
+    'template.desert': 'Desert',
+    'template.aurora': 'Aurora',
+    'template.neon': 'Neon',
+    'template.pastel': 'Pastel',
+    'template.monochrome': 'Monochrome',
+    'template.gradient': 'Gradient',
+    'template.shadow': 'Shadow',
+    'template.border': 'Border',
+    'template.card': 'Card',
+    'template.timeline': 'Timeline',
+    'template.notion': 'Notion',
+    'template.github': 'GitHub',
+    'template.medium': 'Medium',
+    // themes
+    'theme.bright-mode': 'Bright',
+    'theme.dark-mode': 'Dark',
+    'theme.candy': 'Candy',
+    'theme.mint': 'Mint',
+    'theme.purple': 'Purple',
+    'theme.yellow': 'Yellow',
+    'theme.hot-red': 'Hot Red',
+    'theme.forest-green': 'Forest Green',
+    'theme.ocean-blue': 'Ocean Blue',
+    'theme.pink-blue': 'Pink Blue',
+    'theme.neon-pink': 'Neon Pink',
+    'theme.retro-orange': 'Retro Orange',
+    'theme.blue': 'Blue',
+    'theme.pink': 'Pink',
   },
 };
 
 let currentLocale: Locale = 'en';
 
-export function initLocale(): void {
-  const lang = vscode.env.language;
-  currentLocale = lang.startsWith('zh') ? 'zh' : 'en';
+/** VS Code 显示语言 → 扩展默认语言 */
+export function getSystemLocale(): Locale {
+  return vscode.env.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+/** 激活时初始化；可传入用户偏好覆盖系统语言 */
+export function initLocale(override?: Locale | null): void {
+  currentLocale = override || getSystemLocale();
+}
+
+export function setLocale(locale: Locale): void {
+  currentLocale = locale;
 }
 
 export function t(key: string): string {
@@ -114,4 +266,20 @@ export function t(key: string): string {
 
 export function getLocale(): Locale {
   return currentLocale;
+}
+
+export function isLocale(value: unknown): value is Locale {
+  return value === 'zh' || value === 'en';
+}
+
+/** Localized display name for a template id (API id stays English). */
+export function templateName(id: string, fallback?: string): string {
+  return t(`template.${id}`) !== `template.${id}` ? t(`template.${id}`) : (fallback || id);
+}
+
+/** Localized display name for a theme id (API id stays English). */
+export function themeName(id: string): string {
+  const key = `theme.${id}`;
+  const translated = t(key);
+  return translated !== key ? translated : id;
 }

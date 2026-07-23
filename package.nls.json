@@ -1,11 +1,13 @@
 {
-  "extension.displayName": "Share Markdown - HTMLtoLink",
-  "extension.description": "Share Markdown files as beautiful web pages via htmlto.link",
-  "command.share": "Share Markdown File",
+  "displayName": "Markdown Share / Publish MD as Web Page",
+  "description": "One-click share Markdown as a beautiful web page on htmlto.link. Open any .md and click Share on the title bar; guest links last ~24h, set a Token for longer-lived shares.",
+  "commandCategory": "Quick Markdown Share",
+  "command.share": "Share",
   "command.deleteShare": "Delete Share for Current File",
-  "command.setToken": "Set API Token",
-  "config.apiBaseUrl": "API base URL for htmlto.link service",
-  "config.defaultTemplate": "Default template for sharing",
-  "config.autoCopyUrl": "Automatically copy share link to clipboard on success",
-  "config.openInBrowser": "Open share link in browser on success"
+  "command.setToken": "Open Token Settings",
+  "configuration.title": "Quick Markdown Share",
+  "config.apiBaseUrl": "Base URL of the htmlto.link share API.",
+  "config.defaultTemplate": "Default template when sharing Markdown.",
+  "config.autoCopyUrl": "Automatically copy the public URL after a successful share.",
+  "config.openInBrowser": "Open the share link in the browser after success."
 }
