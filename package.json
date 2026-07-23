@@ -6,6 +6,10 @@
   "version": "0.1.1",
   "license": "MIT",
   "publisher": "licc",
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/hangzhou_piaoge_ecommerce/htmlto-link-md-vscode.git"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
