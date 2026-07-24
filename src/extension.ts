@@ -32,7 +32,11 @@ export function activate(context: vscode.ExtensionContext) {
   const apiBaseUrl = vscode.workspace
     .getConfiguration('htmlToLinkMd')
     .get<string>('apiBaseUrl', DEFAULT_API_BASE_URL);
-  sendActivationPing(apiBaseUrl);
+  sendActivationPing({
+    extName: 'htmlto-link-md',
+    extensionId: 'licc.htmlto-link-md',
+    apiBaseUrl,
+  });
 
   void showWelcomeToastOnce(context);
 }
