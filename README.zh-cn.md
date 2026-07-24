@@ -11,6 +11,10 @@
 3. **选择模板**（部分模板可再选主题），点击 **分享**  
 4. **复制链接**，发给任何人即可在浏览器阅读  
 
+### 操作演示
+
+![Quick Markdown Share 演示](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif)
+
 ---
 
 ## 游客 vs Token

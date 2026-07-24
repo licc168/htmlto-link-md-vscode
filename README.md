@@ -11,6 +11,10 @@ One-click share Markdown as a beautiful web page, hosted by [htmlto.link](https:
 3. **Pick a template** (and theme if available), then click **Share**  
 4. **Copy the link** and send it to anyone  
 
+### Demo
+
+![Quick Markdown Share Demo](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif)
+
 ---
 
 ## Guest vs Token

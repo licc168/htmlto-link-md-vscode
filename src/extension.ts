@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { initLocale, isLocale, t, LOCALE_PREF_KEY } from './i18n';
 import { shareActiveFile, deleteShareForActiveFile } from './publish';
 import { promptSetToken } from './token';
+import { sendActivationPing } from './telemetry';
+import { DEFAULT_API_BASE_URL } from './constants';
 
 const WELCOME_TOAST_KEY = 'htmlToLinkMd.hasSeenWelcomeToast';
 
@@ -25,6 +27,12 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(shareCmd, deleteCmd, setTokenCmd);
+
+  // 发送激活统计 ping（fire-and-forget）
+  const apiBaseUrl = vscode.workspace
+    .getConfiguration('htmlToLinkMd')
+    .get<string>('apiBaseUrl', DEFAULT_API_BASE_URL);
+  sendActivationPing(apiBaseUrl);
 
   void showWelcomeToastOnce(context);
 }
