@@ -16,6 +16,7 @@ interface SharePayload {
   templateId: string;
   title: string;
   themeClass?: string;
+  channel?: string;
 }
 
 export async function createSharePage(

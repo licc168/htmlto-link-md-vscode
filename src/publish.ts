@@ -99,7 +99,7 @@ export async function publishMarkdown(
   const response = await createSharePage(
     apiBaseUrl,
     token,
-    { content: prepared, templateId, title, themeClass },
+    { content: prepared, templateId, title, themeClass, channel: 'vscode' },
     existing ? { slug: existing.slug, updateToken: existing.updateToken } : undefined
   );
 
