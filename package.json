@@ -3,12 +3,16 @@
   "displayName": "%displayName%",
   "description": "%description%",
   "icon": "media/icon.png",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "license": "MIT",
   "publisher": "licc",
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/hangzhou_piaoge_ecommerce/htmlto-link-md-vscode.git"
+    "url": "https://github.com/licc168/-htmlto-link-md-vscode.git"
+  },
+  "homepage": "https://github.com/licc168/-htmlto-link-md-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/licc168/-htmlto-link-md-vscode/issues"
   },
   "engines": {
     "vscode": "^1.90.0"
@@ -92,6 +96,11 @@
           "type": "boolean",
           "default": false,
           "description": "%config.openInBrowser%"
+        },
+        "htmlToLinkMd.uploadLocalImages": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically upload local images referenced in Markdown to htmlto.link asset service"
         }
       }
     }

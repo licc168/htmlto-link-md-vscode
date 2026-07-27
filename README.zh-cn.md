@@ -11,6 +11,8 @@
 3. **选择模板**（部分模板可再选主题），点击 **分享**  
 4. **复制链接**，发给任何人即可在浏览器阅读  
 
+> 🖼️ **本地图片支持**：文档中引用的本地图片（支持标准相对路径及 Wiki 语法）会在分享时自动上传并替换为在线 URL，智能缓存避免重复上传。
+
 ### 操作演示
 
 ![Quick Markdown Share 演示](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif)
@@ -54,6 +56,7 @@
 | `htmlToLinkMd.defaultTemplate` | `plain` | 默认模板 |
 | `htmlToLinkMd.autoCopyUrl` | `true` | 成功后自动复制链接 |
 | `htmlToLinkMd.openInBrowser` | `false` | 成功后在浏览器打开 |
+| `htmlToLinkMd.uploadLocalImages` | `true` | 是否在分享时自动上传 Markdown 中引用的本地图片 |
 
 Token 保存在 VS Code Secret Storage，不会写入工作区文件。
 

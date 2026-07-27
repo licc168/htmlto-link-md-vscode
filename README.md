@@ -11,6 +11,8 @@ One-click share Markdown as a beautiful web page, hosted by [htmlto.link](https:
 3. **Pick a template** (and theme if available), then click **Share**  
 4. **Copy the link** and send it to anyone  
 
+> 🖼️ **Local Image Support**: Local images referenced in Markdown (standard relative paths and Wiki links) are automatically uploaded to CDN and replaced with online URLs during sharing, with smart caching to prevent duplicate uploads.
+
 ### Demo
 
 ![Quick Markdown Share Demo](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif)
@@ -54,6 +56,7 @@ You can also run **Quick Markdown Share: Open Token Settings** from the Command 
 | `htmlToLinkMd.defaultTemplate` | `plain` | Default template |
 | `htmlToLinkMd.autoCopyUrl` | `true` | Copy link to clipboard on success |
 | `htmlToLinkMd.openInBrowser` | `false` | Open link in browser on success |
+| `htmlToLinkMd.uploadLocalImages` | `true` | Automatically upload local images referenced in Markdown |
 
 Token is stored in VS Code Secret Storage and is not written to workspace files.
 

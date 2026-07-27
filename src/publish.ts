@@ -5,6 +5,7 @@ import { ShareRecord, CreateShareResponse, TEMPLATES } from './constants';
 import { t } from './i18n';
 import { SharePanel } from './panel/SharePanel';
 import { getToken } from './token';
+import { rewriteLocalImagesForShare } from './local-images';
 
 const SHARES_KEY = 'htmlToLinkMd.fileShares';
 
@@ -28,11 +29,11 @@ function stripFrontmatter(content: string): string {
 }
 
 /**
- * Normalize wiki-style links: [[Note|alias]] -> alias, [[Note]] -> Note
+ * Normalize wiki-style text links: [[Note|alias]] -> alias, [[Note]] -> Note (ignoring image links ![[...]])
  */
 function normalizeWikiLinks(content: string): string {
-  return content.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
-    .replace(/\[\[([^\]]+)\]\]/g, '$1');
+  return content.replace(/(?<!\!)\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
+    .replace(/(?<!\!)\[\[([^\]]+)\]\]/g, '$1');
 }
 
 /**
@@ -83,15 +84,46 @@ export async function publishMarkdown(
 
   const config = vscode.workspace.getConfiguration('htmlToLinkMd');
   const apiBaseUrl = config.get<string>('apiBaseUrl', 'https://htmlto.link');
+  const uploadLocalImages = config.get<boolean>('uploadLocalImages', true);
   const token = await getToken(context);
 
   const records = getShareRecords(context);
   const existing = records[filePath];
 
-  const prepared = prepareMarkdown(content);
+  let prepared = stripFrontmatter(content).trim();
   if (!prepared) {
     throw new Error(t('share.emptyContent'));
   }
+
+  if (uploadLocalImages && filePath) {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: t('share.uploadingImages'),
+        cancellable: false,
+      },
+      async (progress) => {
+        const result = await rewriteLocalImagesForShare(
+          context,
+          apiBaseUrl,
+          token,
+          filePath,
+          prepared,
+          (done, total) => {
+            progress.report({ increment: (1 / total) * 100 });
+          }
+        );
+        prepared = result.markdown;
+        if (result.failed.length > 0) {
+          vscode.window.showWarningMessage(
+            `Failed to upload some local images: ${result.failed.join(', ')}`
+          );
+        }
+      }
+    );
+  }
+
+  prepared = normalizeWikiLinks(prepared).trim();
 
   const title = getTitle(filePath);
   const themeClass = resolveThemeClass(templateId, theme);
