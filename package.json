@@ -8,11 +8,11 @@
   "publisher": "licc",
   "repository": {
     "type": "git",
-    "url": "https://github.com/licc168/-htmlto-link-md-vscode.git"
+    "url": "https://github.com/licc168/htmlto-link-md-vscode.git"
   },
-  "homepage": "https://github.com/licc168/-htmlto-link-md-vscode#readme",
+  "homepage": "https://github.com/licc168/htmlto-link-md-vscode#readme",
   "bugs": {
-    "url": "https://github.com/licc168/-htmlto-link-md-vscode/issues"
+    "url": "https://github.com/licc168/htmlto-link-md-vscode/issues"
   },
   "engines": {
     "vscode": "^1.90.0"
