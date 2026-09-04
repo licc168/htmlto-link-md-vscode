@@ -3,7 +3,7 @@ import * as path from 'path';
 import { createSharePage, deleteSharePage } from './api';
 import { ShareRecord, CreateShareResponse, TEMPLATES } from './constants';
 import { t } from './i18n';
-import { SharePanel } from './panel/SharePanel';
+import { MarkdownPreviewPanel } from './panel/MarkdownPreviewPanel';
 import { getToken } from './token';
 import { rewriteLocalImagesForShare } from './local-images';
 
@@ -32,8 +32,33 @@ function stripFrontmatter(content: string): string {
  * Normalize wiki-style text links: [[Note|alias]] -> alias, [[Note]] -> Note (ignoring image links ![[...]])
  */
 function normalizeWikiLinks(content: string): string {
-  return content.replace(/(?<!\!)\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
-    .replace(/(?<!\!)\[\[([^\]]+)\]\]/g, '$1');
+  let fenceCharacter = '';
+  let fenceLength = 0;
+
+  return content
+    .split(/(\r?\n)/)
+    .map((part) => {
+      if (/^\r?\n$/.test(part)) return part;
+
+      const fence = part.match(/^[ \t]*(`{3,}|~{3,})/);
+      if (fence) {
+        const marker = fence[1];
+        if (!fenceCharacter) {
+          fenceCharacter = marker[0];
+          fenceLength = marker.length;
+        } else if (marker[0] === fenceCharacter && marker.length >= fenceLength) {
+          fenceCharacter = '';
+          fenceLength = 0;
+        }
+        return part;
+      }
+
+      if (fenceCharacter) return part;
+
+      return part.replace(/(?<!\!)\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
+        .replace(/(?<!\!)\[\[([^\]]+)\]\]/g, '$1');
+    })
+    .join('');
 }
 
 /**
@@ -270,7 +295,7 @@ export async function shareActiveFile(context: vscode.ExtensionContext, uri?: vs
   if (!resolved) {
     return;
   }
-  SharePanel.show(context, resolved.filePath, resolved.content);
+  MarkdownPreviewPanel.show(context, resolved.filePath, resolved.content);
 }
 
 /**

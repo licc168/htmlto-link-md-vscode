@@ -3,7 +3,7 @@
   "displayName": "%displayName%",
   "description": "%description%",
   "icon": "media/icon.png",
-  "version": "0.1.6",
+  "version": "0.1.10",
   "license": "MIT",
   "publisher": "licc",
   "repository": {
@@ -101,20 +101,35 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically upload local images referenced in Markdown to htmlto.link asset service"
+        },
+        "htmlToLinkMd.enableTelemetry": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.enableTelemetry%"
         }
       }
     }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && npm run bundle:mermaid",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext .ts",
+    "bundle:mermaid": "node scripts/bundle-mermaid.mjs",
+    "sync:templates": "node scripts/sync-template-assets.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.9.2",
-    "typescript": "^5.5.0"
+    "esbuild": "^0.25.5",
+    "eslint": "^9.39.5",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.68.0"
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.5",
+    "mermaid": "^11.17.2"
   }
 }

@@ -10,34 +10,34 @@ export const TEMPLATES: TemplateOption[] = [
   { id: 'popart', name: 'Pop Art', themes: ['candy', 'mint', 'purple', 'yellow', 'hot-red', 'forest-green', 'ocean-blue', 'pink-blue', 'neon-pink', 'retro-orange'] },
   { id: 'traditionalchinese', name: 'Traditional Chinese' },
   { id: 'coilnotebook', name: 'Coil Notebook', themes: ['blue', 'pink', 'mint', 'yellow'] },
+  { id: 'purpleticket', name: 'Purple Xiaohongshu' },
+  { id: 'bytedance', name: 'ByteDance' },
+  { id: 'warm', name: 'Warm' },
+  { id: 'alibaba', name: 'Alibaba Orange' },
+  { id: 'notebook', name: 'Notebook' },
+  { id: 'darktech', name: 'Dark Tech' },
+  { id: 'fairytale', name: 'Fairy Tale' },
+  { id: 'boardgamestyle', name: 'Boardgame' },
   { id: 'cyberpunk', name: 'Cyberpunk' },
   { id: 'glassmorphism', name: 'Glassmorphism' },
+  { id: 'neonglow', name: 'Neon Glow' },
+  { id: 'vintagenewspaper', name: 'Vintage Newspaper' },
+  { id: 'handwrittennote', name: 'Handwritten Note' },
+  { id: 'vintagemap', name: 'Vintage Map' },
+  { id: 'blueprint', name: 'Blueprint' },
+  { id: 'botanical', name: 'Botanical' },
+  { id: 'sketch', name: 'Sketch' },
   { id: 'terminal', name: 'Terminal' },
+  { id: 'retro', name: 'Retro Win95' },
+  { id: 'ayulight', name: 'Ayu Light' },
   { id: 'bauhaus', name: 'Bauhaus' },
-  { id: 'newspaper', name: 'Newspaper' },
-  { id: 'magazine', name: 'Magazine' },
-  { id: 'academic', name: 'Academic' },
-  { id: 'minimal', name: 'Minimal' },
-  { id: 'elegant', name: 'Elegant' },
-  { id: 'modern', name: 'Modern' },
-  { id: 'retro', name: 'Retro' },
-  { id: 'nature', name: 'Nature' },
-  { id: 'ocean', name: 'Ocean' },
-  { id: 'sunset', name: 'Sunset' },
-  { id: 'forest', name: 'Forest' },
-  { id: 'desert', name: 'Desert' },
-  { id: 'aurora', name: 'Aurora' },
-  { id: 'neon', name: 'Neon' },
-  { id: 'pastel', name: 'Pastel' },
-  { id: 'monochrome', name: 'Monochrome' },
-  { id: 'gradient', name: 'Gradient' },
-  { id: 'shadow', name: 'Shadow' },
-  { id: 'border', name: 'Border' },
-  { id: 'card', name: 'Card' },
-  { id: 'timeline', name: 'Timeline' },
-  { id: 'notion', name: 'Notion' },
-  { id: 'github', name: 'GitHub' },
-  { id: 'medium', name: 'Medium' },
+  { id: 'greensimple', name: 'Fresh Green' },
+  { id: 'maximalism', name: 'Maximalism' },
+  { id: 'neobrutalism', name: 'Neo Brutalism' },
+  { id: 'newsprint', name: 'Newsprint' },
+  { id: 'organic', name: 'Wabi-Sabi Ceramic' },
+  { id: 'playfulgeometric', name: 'Playful Geometric' },
+  { id: 'professional', name: 'Professional' },
 ];
 
 export const DEFAULT_API_BASE_URL = 'https://htmlto.link';
@@ -47,6 +47,8 @@ export interface ShareRecord {
   slug: string;
   updateToken: string;
   url: string;
+  templateId?: string;
+  theme?: string;
 }
 
 export interface CreateShareResponse {

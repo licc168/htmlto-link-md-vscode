@@ -6,7 +6,6 @@ scripts/**
 tsconfig.json
 **/*.map
 **/*.ts
-node_modules/**
 test/**
 *.vsix
 .DS_Store

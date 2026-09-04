@@ -188,7 +188,7 @@ async function uploadAsset(
     res = await fetch(`${base}/api/assets`, {
       method: 'POST',
       headers,
-      body: data,
+      body: new Uint8Array(data),
     });
   } catch (err: unknown) {
     throw new Error('Network error uploading asset: ' + (err instanceof Error ? err.message : String(err)));

@@ -1,13 +1,14 @@
 {
   "displayName": "Markdown 一键分享 / 文档转网页",
-  "description": "一键将 Markdown 分享为精美网页到 htmlto.link。打开任意 .md 点标题栏「分享」即可；游客链接约 24 小时有效，设置 Token 可长期保存。",
+  "description": "将 Markdown 分享为精美网页到 htmlto.link，支持本地实时预览和 33 个模板。打开任意 .md 点标题栏「分享」即可；游客链接约 24 小时有效，设置 Token 可长期保存。",
   "commandCategory": "Markdown 一键分享",
-  "command.share": "分享",
+  "command.share": "预览并分享",
   "command.deleteShare": "删除当前文件的分享",
   "command.setToken": "打开 Token 设置",
   "configuration.title": "Markdown 一键分享",
   "config.apiBaseUrl": "htmlto.link 分享接口的基础地址。",
   "config.defaultTemplate": "分享 Markdown 时使用的默认模板。",
   "config.autoCopyUrl": "分享成功后自动复制公开链接。",
-  "config.openInBrowser": "分享成功后在浏览器中打开链接。"
+  "config.openInBrowser": "分享成功后在浏览器中打开链接。",
+  "config.enableTelemetry": "允许发送匿名激活统计，以帮助改进扩展。"
 }
