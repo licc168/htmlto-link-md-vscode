@@ -15,7 +15,7 @@ One-click share Markdown as a beautiful web page, hosted by [htmlto.link](https:
 
 ### Demo
 
-![Quick Markdown Share Demo](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif)
+![Quick Markdown Share Demo](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif?v=0.1.11)
 
 ---
 
