@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { DEFAULT_TEMPLATE, TEMPLATES } from '../constants';
 import { getLocale, t, templateName, themeName } from '../i18n';
 import { getShareRecords, publishMarkdown, readMarkdownContentForPath } from '../publish';
-import { hasToken, promptSetToken, TOKEN_SETTINGS_URL } from '../token';
+import { hasToken, promptSetToken, TOKEN_HOME_URL, TOKEN_SETTINGS_URL } from '../token';
 import { renderMarkdownPreview } from './preview';
 export class MarkdownPreviewPanel {
   public static currentPanel: MarkdownPreviewPanel | undefined;
@@ -21,6 +21,8 @@ export class MarkdownPreviewPanel {
   private renderToken = 0;
   private documentChangeDisposable?: vscode.Disposable;
   private renameDisposable?: vscode.Disposable;
+  private editorFollowDisposable?: vscode.Disposable;
+  private loadToken = 0;
 
   private constructor(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
         this.panel = panel;
@@ -31,27 +33,35 @@ export class MarkdownPreviewPanel {
     }
     public static show(context: vscode.ExtensionContext, filePath: string, content: string): void {
         if (MarkdownPreviewPanel.currentPanel) {
-            MarkdownPreviewPanel.currentPanel.panel.reveal(vscode.ViewColumn.Beside);
+            MarkdownPreviewPanel.currentPanel.revealInActiveGroup();
             void MarkdownPreviewPanel.currentPanel.init(context, filePath, content);
             return;
         }
-        const panel = vscode.window.createWebviewPanel('htmlToLinkMdPreview', `Preview ${path.basename(filePath) || 'Markdown'}`, vscode.ViewColumn.Beside, {
+        const panel = vscode.window.createWebviewPanel('htmlToLinkMdPreview', `Preview ${path.basename(filePath) || 'Markdown'}`, vscode.ViewColumn.Active, {
             enableScripts: true,
             retainContextWhenHidden: true,
         });
         MarkdownPreviewPanel.currentPanel = new MarkdownPreviewPanel(panel, context);
         void MarkdownPreviewPanel.currentPanel.init(context, filePath, content);
     }
+    private revealInActiveGroup(): void {
+        this.panel.reveal(vscode.ViewColumn.Active, true);
+    }
     private async init(context: vscode.ExtensionContext, filePath: string, content: string): Promise<void> {
+        const token = ++this.loadToken;
         this.filePath = filePath;
         this.content = content;
         this.fileName = path.basename(filePath) || 'untitled.md';
         this.panel.title = `Preview ${this.fileName}`;
+        this.attachWatchers();
         const latest = await readMarkdownContentForPath(filePath);
+        if (token !== this.loadToken)
+            return;
         if (latest !== undefined)
             this.content = latest;
         this.hasTokenFlag = await hasToken(context);
-        this.attachWatchers();
+        if (token !== this.loadToken)
+            return;
         this.selectInitialState();
         this.initialized = true;
         this.sendInit();
@@ -75,6 +85,32 @@ export class MarkdownPreviewPanel {
             });
             this.disposables.push(this.renameDisposable);
         }
+        if (!this.editorFollowDisposable) {
+            this.editorFollowDisposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
+                void this.followActiveEditor(editor);
+            });
+            this.disposables.push(this.editorFollowDisposable);
+        }
+    }
+    private async followActiveEditor(editor: vscode.TextEditor | undefined): Promise<void> {
+        if (!editor)
+            return;
+        const doc = editor.document;
+        const isMarkdown = doc.languageId === 'markdown' || /\.md$/i.test(doc.fileName);
+        if (!isMarkdown || this.samePath(doc.fileName, this.filePath))
+            return;
+        this.revealInActiveGroup();
+        await this.init(this.context, doc.fileName, doc.getText());
+    }
+    private async showSource(): Promise<void> {
+        if (!this.filePath)
+            return;
+        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(this.filePath));
+        await vscode.window.showTextDocument(document, {
+            viewColumn: vscode.ViewColumn.Active,
+            preview: false,
+            preserveFocus: false,
+        });
     }
     private samePath(left: string, right: string): boolean {
         const a = path.normalize(left);
@@ -120,12 +156,16 @@ export class MarkdownPreviewPanel {
             existingUrl: record?.url || '',
             locale: getLocale(),
             i18n: {
+                source: t('preview.source'),
+                sourceTitle: t('preview.sourceTitle'),
                 template: t('preview.template'),
                 theme: t('preview.theme'),
                 noTheme: t('preview.noTheme'),
                 share: t('preview.share'),
                 update: t('preview.update'),
                 rendering: t('preview.rendering'),
+                publishing: t('preview.publishing'),
+                shareFailed: t('preview.shareFailed'),
                 ready: t('preview.ready'),
                 copy: t('preview.copy'),
                 open: t('preview.open'),
@@ -226,6 +266,12 @@ export class MarkdownPreviewPanel {
                 if (message.url)
                     await vscode.env.openExternal(vscode.Uri.parse(message.url));
                 break;
+            case 'openSite':
+                await vscode.env.openExternal(vscode.Uri.parse(TOKEN_HOME_URL));
+                break;
+            case 'showSource':
+                await this.showSource();
+                break;
         }
     }
     private async doShare(templateId: string, theme?: string): Promise<void> {
@@ -249,9 +295,11 @@ export class MarkdownPreviewPanel {
             });
         }
         catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            void vscode.window.showErrorMessage(message);
             this.panel.webview.postMessage({
                 type: 'shareError',
-                message: error instanceof Error ? error.message : String(error),
+                message,
             });
         }
     }
@@ -267,14 +315,23 @@ export class MarkdownPreviewPanel {
 </head>
 <body>
   <header class="toolbar">
-    <div class="file-title"><span class="file-icon">▤</span><span id="fileName"></span></div>
+    <div class="toolbar-row">
+    <div class="file-title"><span class="file-icon">▤</span><span id="fileName"></span><button id="sourceBtn" class="secondary source-button" type="button"></button></div>
     <div class="toolbar-controls">
       <label><span id="templateLabel"></span><select id="templateSelect"></select></label>
       <label id="themeControl"><span id="themeLabel"></span><select id="themeSelect"></select></label>
       <button id="tokenBtn" class="token-button secondary" type="button" aria-expanded="false" aria-controls="tokenPopover"></button>
       <button id="shareBtn" type="button"></button>
+      <a id="siteLink" class="site-link" href="https://htmlto.link/">htmltolink</a>
       <span id="status" role="status"></span>
     </div>
+    </div>
+    <aside id="result" class="result hidden">
+      <span id="resultText"></span>
+      <a id="resultUrl" href="#"></a>
+      <button id="copyBtn" type="button"></button>
+      <button id="openBtn" type="button"></button>
+    </aside>
     <div id="tokenPopover" class="token-popover hidden" role="dialog" aria-labelledby="tokenTitle">
       <div id="tokenTitle" class="token-popover-title"></div>
       <p id="tokenHint" class="token-popover-hint"></p>
@@ -293,12 +350,6 @@ export class MarkdownPreviewPanel {
   <main class="preview-container">
     <iframe id="previewFrame" title="Markdown preview" sandbox="allow-same-origin"></iframe>
   </main>
-  <aside id="result" class="result hidden">
-    <span id="resultText"></span>
-    <a id="resultUrl" href="#"></a>
-    <button id="copyBtn" type="button"></button>
-    <button id="openBtn" type="button"></button>
-  </aside>
   <script src="${mermaidScriptUri}"></script>
   <script>${PREVIEW_PANEL_SCRIPT}</script>
 </body>
@@ -316,10 +367,12 @@ const PREVIEW_PANEL_STYLES = /* css */ `
   * { box-sizing: border-box; }
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
   body { display: flex; flex-direction: column; color: var(--vscode-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); }
-  .toolbar { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; min-height: 46px; padding: 7px 12px; border-bottom: 1px solid var(--vscode-panel-border); background: var(--vscode-editor-background); box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+  .toolbar { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; min-height: 46px; padding: 7px 12px; border-bottom: 1px solid var(--vscode-panel-border); background: var(--vscode-editor-background); box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+  .toolbar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
   .file-title { display: flex; flex: 1 1 160px; align-items: center; gap: 7px; min-width: 0; color: var(--vscode-descriptionForeground); font-size: 12px; }
   .file-icon { color: var(--vscode-textLink-foreground); font-size: 17px; }
   #fileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .source-button { height: 24px; padding: 0 8px; font-size: 11px; font-weight: 600; }
   .toolbar-controls { display: flex; flex: 0 1 auto; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; }
   label { display: inline-flex; align-items: center; gap: 5px; color: var(--vscode-descriptionForeground); font-size: 11px; white-space: nowrap; }
   select, button { height: 28px; flex: 0 0 auto; border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border)); border-radius: 5px; font: inherit; white-space: nowrap; }
@@ -340,15 +393,20 @@ const PREVIEW_PANEL_STYLES = /* css */ `
   .token-steps { margin: 0 0 14px; padding-left: 21px; color: var(--vscode-foreground); font-size: 11px; line-height: 1.65; }
   .token-popover-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
   .token-popover-actions button { height: 27px; padding: 0 9px; font-size: 11px; }
-  #status { min-width: 52px; color: var(--vscode-descriptionForeground); font-size: 11px; text-align: right; }
+  button.is-busy { opacity: .72; cursor: progress; }
+  #status { max-width: 180px; overflow: hidden; color: var(--vscode-descriptionForeground); font-size: 11px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+  #status:empty { display: none; }
+  .site-link { color: var(--vscode-textLink-foreground); font-size: 12px; text-decoration: underline; white-space: nowrap; cursor: pointer; }
+  .site-link.hidden { display: none; }
   #status.error { color: var(--vscode-errorForeground); }
   .preview-container { flex: 1; min-height: 0; background: #f1f5f9; }
   #previewFrame { display: block; width: 100%; height: 100%; border: 0; background: #f1f5f9; }
-  .result { position: fixed; right: 14px; bottom: 14px; z-index: 4; display: flex; align-items: center; gap: 8px; max-width: min(680px, calc(100vw - 28px)); padding: 9px 10px; border: 1px solid var(--vscode-panel-border); border-radius: 7px; background: var(--vscode-editorWidget-background); box-shadow: 0 8px 24px rgba(0,0,0,.2); font-size: 12px; }
+  .result { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 8px; border: 1px solid var(--vscode-panel-border); border-radius: 7px; background: var(--vscode-editorWidget-background); font-size: 12px; }
   .result.hidden { display: none; }
-  #resultUrl { max-width: 280px; overflow: hidden; color: var(--vscode-textLink-foreground); text-overflow: ellipsis; white-space: nowrap; }
+  #resultText { flex: 0 0 auto; }
+  #resultUrl { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--vscode-textLink-foreground); text-overflow: ellipsis; white-space: nowrap; }
   .result button { height: 25px; padding: 0 8px; font-size: 11px; }
-  @media (max-width: 760px) { .toolbar { align-items: flex-start; flex-direction: column; justify-content: flex-start; gap: 6px; } .file-title { width: 100%; flex: 0 1 auto; } .toolbar-controls { width: 100%; justify-content: flex-start; flex-wrap: wrap; } #templateSelect { width: min(140px, 42vw); } #themeSelect { width: min(84px, 25vw); } select { max-width: 130px; } }
+  @media (max-width: 760px) { .toolbar-row { align-items: flex-start; flex-direction: column; justify-content: flex-start; gap: 6px; } .file-title { width: 100%; flex: 0 1 auto; } .toolbar-controls { width: 100%; justify-content: flex-start; flex-wrap: wrap; } #templateSelect { width: min(140px, 42vw); } #themeSelect { width: min(84px, 25vw); } select { max-width: 130px; } }
 `;
 const PREVIEW_PANEL_SCRIPT = /* js */ `
   const vscode = acquireVsCodeApi();
@@ -359,11 +417,39 @@ const PREVIEW_PANEL_SCRIPT = /* js */ `
   let selectedTheme = '';
   let currentUrl = '';
   let hasToken = false;
+  let shareIdleLabel = 'Publish';
+
+  function showShareLink(url, label) {
+    currentUrl = url || '';
+    const result = $('result');
+    if (!currentUrl) {
+      result.classList.add('hidden');
+      return;
+    }
+    $('resultText').textContent = label || i18n.share || 'Published';
+    $('resultUrl').textContent = currentUrl;
+    $('resultUrl').href = currentUrl;
+    $('copyBtn').textContent = i18n.copy || 'Copy';
+    $('openBtn').textContent = i18n.open || 'Open';
+    result.classList.remove('hidden');
+  }
+
+  function setShareBusy(busy) {
+    const button = $('shareBtn');
+    button.disabled = busy;
+    button.classList.toggle('is-busy', busy);
+    button.setAttribute('aria-busy', String(busy));
+    button.textContent = busy ? (i18n.publishing || 'Publishing...') : shareIdleLabel;
+  }
 
   function setStatus(text, error) {
+    const readyText = i18n.ready || 'Live preview';
+    const isReady = !error && (!text || text === readyText);
     const status = $('status');
-    status.textContent = text || '';
+    const siteLink = $('siteLink');
+    status.textContent = isReady ? '' : (text || '');
     status.classList.toggle('error', !!error);
+    if (siteLink) siteLink.classList.toggle('hidden', !isReady);
   }
 
   function renderTokenPopover() {
@@ -509,6 +595,11 @@ const PREVIEW_PANEL_SCRIPT = /* js */ `
     vscode.postMessage({ type: 'setToken' });
   });
   $('dismissTokenBtn').addEventListener('click', () => setTokenPopoverVisible(false));
+  $('sourceBtn').addEventListener('click', () => vscode.postMessage({ type: 'showSource' }));
+  $('siteLink').addEventListener('click', (event) => {
+    event.preventDefault();
+    vscode.postMessage({ type: 'openSite' });
+  });
   $('shareBtn').addEventListener('click', () => {
     vscode.postMessage({ type: 'share', templateId: selectedTemplate, theme: selectedTheme || undefined });
   });
@@ -528,9 +619,13 @@ const PREVIEW_PANEL_SCRIPT = /* js */ `
       selectedTheme = msg.selectedTheme || '';
       hasToken = !!msg.hasToken;
       $('fileName').textContent = msg.fileName || '';
+      $('sourceBtn').textContent = i18n.source || 'Source';
+      $('sourceBtn').title = i18n.sourceTitle || 'Back to the Markdown source';
       $('templateLabel').textContent = i18n.template || 'Template';
       $('themeLabel').textContent = i18n.theme || 'Theme';
-      $('shareBtn').textContent = msg.existingUrl ? (i18n.update || i18n.share || 'Share') : (i18n.share || 'Share');
+      shareIdleLabel = msg.existingUrl ? (i18n.update || i18n.share || 'Share') : (i18n.share || 'Share');
+      setShareBusy(false);
+      showShareLink(msg.existingUrl || '', i18n.share || 'Published');
       renderTokenPopover();
       renderTemplates(msg.templates || []);
       postSelection();
@@ -543,21 +638,16 @@ const PREVIEW_PANEL_SCRIPT = /* js */ `
       $('previewFrame').srcdoc = '';
       setStatus(msg.message || i18n.failed || 'Preview failed', true);
     } else if (msg.type === 'sharing') {
-      $('shareBtn').disabled = true;
-      setStatus(i18n.rendering || 'Publishing...', false);
+      setShareBusy(true);
     } else if (msg.type === 'shared') {
-      $('shareBtn').disabled = false;
-      currentUrl = msg.url || '';
-      $('resultText').textContent = msg.isUpdate ? (i18n.update || 'Updated') : (i18n.share || 'Published');
-      $('resultUrl').textContent = currentUrl;
-      $('resultUrl').href = currentUrl;
-      $('copyBtn').textContent = i18n.copy || 'Copy';
-      $('openBtn').textContent = i18n.open || 'Open';
-      $('result').classList.remove('hidden');
+      shareIdleLabel = i18n.update || i18n.share || 'Share';
+      setShareBusy(false);
+      showShareLink(msg.url || '', msg.isUpdate ? (i18n.update || 'Updated') : (i18n.share || 'Published'));
       setStatus(i18n.ready || 'Live preview', false);
     } else if (msg.type === 'shareError') {
-      $('shareBtn').disabled = false;
-      setStatus(msg.message || i18n.failed || 'Share failed', true);
+      setShareBusy(false);
+      $('status').title = msg.message || '';
+      setStatus(i18n.shareFailed || 'Publish failed', true);
     } else if (msg.type === 'tokenState') {
       hasToken = !!msg.hasToken;
       renderTokenPopover();

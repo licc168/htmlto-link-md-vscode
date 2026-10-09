@@ -11,6 +11,22 @@ export class ApiError extends Error {
   }
 }
 
+function readApiErrorMessage(status: number, text: string): string {
+  const trimmed = text.trim();
+  if (trimmed) {
+    try {
+      const data = JSON.parse(trimmed) as { error?: unknown };
+      if (typeof data.error === 'string' && data.error.trim()) {
+        return data.error.trim();
+      }
+    } catch {
+      return trimmed;
+    }
+    return trimmed;
+  }
+  return `API error: ${status}`;
+}
+
 interface SharePayload {
   content: string;
   templateId: string;
@@ -59,7 +75,7 @@ export async function createSharePage(
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new ApiError(`API error: ${res.status} ${text}`, res.status);
+    throw new ApiError(readApiErrorMessage(res.status, text), res.status);
   }
 
   const data = await res.json() as Record<string, unknown>;
