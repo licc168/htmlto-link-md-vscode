@@ -23,16 +23,29 @@ export class MarkdownPreviewPanel {
   private renameDisposable?: vscode.Disposable;
   private editorFollowDisposable?: vscode.Disposable;
   private loadToken = 0;
+  /** User chose the text editor. File switches must not cover it with the preview. */
+  private preferSource = false;
+  private showingSource = false;
+  private previewActive = false;
 
   private constructor(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
         this.panel = panel;
         this.context = context;
+        this.previewActive = panel.active;
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+        this.panel.onDidChangeViewState((event) => {
+            const active = event.webviewPanel.active;
+            if (active && !this.previewActive && !this.showingSource) {
+                this.preferSource = false;
+            }
+            this.previewActive = active;
+        }, null, this.disposables);
         this.panel.webview.onDidReceiveMessage((message) => void this.handleMessage(message), null, this.disposables);
         this.panel.webview.html = this.getHtml();
     }
     public static show(context: vscode.ExtensionContext, filePath: string, content: string): void {
         if (MarkdownPreviewPanel.currentPanel) {
+            MarkdownPreviewPanel.currentPanel.preferSource = false;
             MarkdownPreviewPanel.currentPanel.revealInActiveGroup();
             void MarkdownPreviewPanel.currentPanel.init(context, filePath, content);
             return;
@@ -99,18 +112,27 @@ export class MarkdownPreviewPanel {
         const isMarkdown = doc.languageId === 'markdown' || /\.md$/i.test(doc.fileName);
         if (!isMarkdown || this.samePath(doc.fileName, this.filePath))
             return;
-        this.revealInActiveGroup();
+        if (!this.preferSource)
+            this.revealInActiveGroup();
         await this.init(this.context, doc.fileName, doc.getText());
     }
     private async showSource(): Promise<void> {
         if (!this.filePath)
             return;
-        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(this.filePath));
-        await vscode.window.showTextDocument(document, {
-            viewColumn: vscode.ViewColumn.Active,
-            preview: false,
-            preserveFocus: false,
-        });
+        this.preferSource = true;
+        this.showingSource = true;
+        try {
+            const document = await vscode.workspace.openTextDocument(vscode.Uri.file(this.filePath));
+            await vscode.window.showTextDocument(document, {
+                viewColumn: vscode.ViewColumn.Active,
+                preview: false,
+                preserveFocus: false,
+            });
+        }
+        finally {
+            this.showingSource = false;
+            this.preferSource = true;
+        }
     }
     private samePath(left: string, right: string): boolean {
         const a = path.normalize(left);

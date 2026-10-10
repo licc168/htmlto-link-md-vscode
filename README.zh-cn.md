@@ -15,7 +15,7 @@
 
 ### 操作演示
 
-![Quick Markdown Share 演示](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif?v=0.1.12)
+![Quick Markdown Share 演示](https://image.albumshare.cn/hmltolink/htmlto-link-md-vscode/demo.gif?v=0.1.13)
 
 ---
 

@@ -3,7 +3,7 @@
   "displayName": "%displayName%",
   "description": "%description%",
   "icon": "media/icon.png",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "license": "MIT",
   "publisher": "licc",
   "repository": {
@@ -37,7 +37,10 @@
     "Markdown发布",
     "笔记分享"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [

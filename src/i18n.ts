@@ -102,14 +102,16 @@ const messages: Record<Locale, Record<string, string>> = {
         'panel.tokenBar.token': '已设置 Token · 分享将绑定账号',
         'panel.welcome.title': '3 步分享 Markdown',
         'panel.welcome.step1': '打开任意 .md 文件',
-        'panel.welcome.step2': '点编辑器右上角地球图标，或右键文件选择「分享」',
+        'panel.welcome.step2': '点窗口底部状态栏的「分享为网页」，或右上角地球图标',
         'panel.welcome.step3': '挑选模板（可选主题），点击分享，复制公开链接',
         'panel.welcome.token': '可选：设置 Token 获得长期链接。在 htmlto.link 注册后，于设置页复制 Token。',
         'panel.welcome.dismiss': '知道了，开始分享',
         'panel.lang.zh': '中文',
         'panel.lang.en': 'EN',
         'panel.lang.aria': '切换界面语言',
-        'welcome.toast': 'Markdown 一键分享：打开 .md 后，点编辑器右上角地球图标即可分享为网页。',
+        'codelens.share': '$(globe) 分享为网页',
+        'codelens.shareTooltip': '打开预览并分享为网页。只预览不会上传。',
+        'welcome.toast': 'Markdown 一键分享：打开 .md 后，点窗口底部状态栏的「分享为网页」，或右上角地球图标。',
         'welcome.toast.action': '立即分享',
         'welcome.toast.dismiss': '知道了',
         // templates
@@ -258,14 +260,16 @@ const messages: Record<Locale, Record<string, string>> = {
         'panel.tokenBar.token': 'Token set · shares are linked to your account',
         'panel.welcome.title': 'Share Markdown in 3 steps',
         'panel.welcome.step1': 'Open any .md file',
-        'panel.welcome.step2': 'Click the globe icon in the editor title bar, or right-click the file → Share',
+        'panel.welcome.step2': 'Click “Share as web page” in the status bar, or the globe icon in the title bar',
         'panel.welcome.step3': 'Pick a template (and theme if any), share, then copy the public link',
         'panel.welcome.token': 'Optional: set a Token for longer-lived links. Sign up at htmlto.link, then copy the Token from Settings.',
         'panel.welcome.dismiss': 'Got it, start sharing',
         'panel.lang.zh': '中文',
         'panel.lang.en': 'EN',
         'panel.lang.aria': 'Switch UI language',
-        'welcome.toast': 'Quick Markdown Share: open a .md file, then click the globe icon in the editor title bar to share as a web page.',
+        'codelens.share': '$(globe) Share as web page',
+        'codelens.shareTooltip': 'Open the preview and share this note as a web page. Previewing does not upload.',
+        'welcome.toast': 'Quick Markdown Share: open a .md file, then click “Share as web page” in the status bar, or the globe icon in the title bar.',
         'welcome.toast.action': 'Share now',
         'welcome.toast.dismiss': 'Got it',
         // templates (English keeps product names)
@@ -332,8 +336,22 @@ export function initLocale(override?: Locale | null): void {
   currentLocale = override || getSystemLocale();
 }
 
+const localeListeners = new Set<() => void>();
+
+export function onLocaleChanged(listener: () => void): { dispose(): void } {
+  localeListeners.add(listener);
+  return {
+    dispose() {
+      localeListeners.delete(listener);
+    },
+  };
+}
+
 export function setLocale(locale: Locale): void {
   currentLocale = locale;
+  for (const listener of localeListeners) {
+    listener();
+  }
 }
 
 export function t(key: string): string {
